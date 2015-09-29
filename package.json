@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/throrin19/svgutils.git"
+    "url": "https://github.com/Goomeo/svgutils.git"
   },
   "keywords": [
     "svg",
@@ -22,12 +22,12 @@
   "readmeFilename": "README.md",
   "gitHead": "5c71469ee5f51b6e08bc8f5e3cd2b0fadf0ed89a",
   "dependencies": {
-    "async": "~0.9.0",
+    "async": "~1.4.2",
     "dxf-parsing": "^0.3.7",
-    "gm": "~1.17.0",
+    "gm": "~1.20.0",
     "underscore": "~1.7.0",
     "xml2js": "~0.4.4",
-    "xmlbuilder": "^2.4.3"
+    "xmlbuilder": "^3.1.0"
   },
   "devDependencies": {
     "mocha": ""

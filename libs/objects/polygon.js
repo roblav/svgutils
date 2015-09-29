@@ -174,103 +174,179 @@ Polygon.prototype.getInnerBox = function getInnerBox(callback) {
         },
         segment;
 
-    if (pointsCount === 0) {
-        callback(innerRect);
+    function calculAires( matrix, xKeys, yKeys ) {
+        var nbInside   = 0;
+        var nbOutside  = 0;
+        // parcours les lignes
+        for(var i in xKeys) {
+            for(var j in yKeys) {
+                if( matrix[ xKeys[i] ] ) {
+                    if( matrix[ xKeys[i] ][ yKeys[j] ] == 1 ) nbInside++;
+                    else if( matrix[ xKeys[i] ][ yKeys[j] ] == 0 ) nbOutside++
+                }
+            }
+        }
+        return { inside : nbInside, outside : nbOutside };
+    }
+
+    function pointIsInside( point, polyPoints ) {
+        var c = false;
+        var i = 0, j=0;
+        for (i = 0, j = polyPoints.length - 1; i < polyPoints.length; j = i++) {
+            if ((( arrondi(polyPoints[i].y) > arrondi(point.y) ) != ( arrondi(polyPoints[j].y) > arrondi(point.y))) &&
+                ( arrondi(point.x) <
+                    ( arrondi(polyPoints[j].x) - arrondi(polyPoints[i].x) ) * ( arrondi(point.y) - arrondi(polyPoints[i].y)) / (arrondi(polyPoints[j].y) - arrondi(polyPoints[i].y)) +
+                        arrondi(polyPoints[i].x))) {
+                c = !c;
+            }
+        }
+        return c;
+    }
+
+    function makeMatrix( points, box ) {
+        var matrix = [];
+        var yKeys  = [];
+        var xKeys  = [];
+        var first = true;
+        for(var i=arrondi(box.x); i< box.x + (box.width + offsetX);  i = arrondi(i+offsetX) ) {
+            for(var j=arrondi(box.y); j< box.y + (box.height + offsetY); j= arrondi(j+offsetY) ){
+                if( !_.isArray(matrix[i]) ) matrix[i] = [];
+                matrix[i][j] = pointIsInside( {x:i, y:j}, points ) == true ? 1 : 0;
+                if( first == true ) yKeys.push(j);
+            }
+            first = false;
+            xKeys.push(i);
+        }
+        return {matrix:matrix, xKeys:xKeys, yKeys:yKeys};
+    }
+
+    function matrixToRect (matrix) {
+        var x = 99999;
+        var y = 99999;
+        var maxX = 0;
+        var maxY = 0;
+        var width  = 0;
+        var height = 0;
+        for(var i in xKeys) {
+            for(var j in yKeys) {
+                if(matrix[ xKeys[i] ]) {
+                    if( matrix[ xKeys[i] ][ yKeys[j] ] ) {
+                        y = Math.min(y, yKeys[j] );
+                        maxY = Math.max(maxY, yKeys[j] );
+                    }
+                    x = Math.min(x, xKeys[i] );
+                    maxX = Math.max(maxX, xKeys[i] );
+                }
+            }
+        }
+        return {x: x,
+            y: y,
+            width: arrondi(maxX - x),
+            height: arrondi(maxY - y) };
+    }
+
+    function deleteRow( matrix, xKeys, yKeys, x, y, from ) {
+        var newMatrix       = matrix;
+        var find            = false;
+        _.each(xKeys, function( i ){
+            _.each(yKeys, function( j ){
+                if( x == 0 && j == y) {
+                    if(newMatrix[i]) newMatrix[i][j]= null;
+                    find = true;
+                }
+            });
+            if( y == 0 && i == x) {
+                newMatrix[i] = null;
+                find = true;
+            }
+        });
+        if( find == true && x == 0 && from == 'top') {
+            ryKeys = _.without(ryKeys, y);
+            yKeys = _.without(yKeys, y);
+        }
+        if( find == true && y == 0 && from == 'right') {
+            rxKeys = _.without(rxKeys, x);
+            xKeys = _.without(xKeys, x);
+        }
+        console.log(rxKeys);
+        if( find == true && x == 0 && from == 'bottom') {
+            yKeys = _.without(yKeys, y);
+            ryKeys = _.without(ryKeys, y);
+        }
+        if( find == true && y == 0 && from == 'left') {
+            rxKeys = _.without(rxKeys, x);
+            xKeys = _.without(xKeys, x);
+        }
         return;
     }
 
-    _.each(this.points, function (point) {
-        verticesY.push(point.y);
-    }, this);
-    verticesY = _.sortBy(verticesY, function (y) {
-        return y;
-    });
-    _.each(verticesY, function (y, i) {
-        if (Math.abs(y - prevY) < EPSILON) {
-            return;
-        }
-        if (i > 0) {
-            segment = this._widestSegmentAtY(y-0.1);
-            if (segment.width > 0) {
-                segments.push(segment);
-            }
-        }
-        if (i < pointsCount-1) {
-            segment = this._widestSegmentAtY(y+0.1);
-            if (segment.width > 0) {
-                segments.push(segment);
-            }
-        }
-
-        prevY = y;
-    }, this);
-
-    if (segments.length > 1) {
-        var iSeg0   = 0,
-            iSeg1   = 0,
-            curRect = innerRect;
-
-        for (iSeg0 = 0, iSeg1 = 1; iSeg1 < segments.length; iSeg0 += 2, iSeg1 += 2) {
-            var segment0 = segments[iSeg0],
-                segment1 = segments[iSeg1];
-
-            if (Math.abs(segment0.width - segment1.width) < EPSILON) {
-                var x0      = Math.max(segment0.x, segment1.x),
-                    x1      = Math.min(segment0.x + segment0.width, segment1.x + segment1.width),
-                    width   = x1 - x0;
-                curRect = {
-                    x : x0,
-                    y : segment0.y,
-                    width : width,
-                    height : segment1.y - segment0.y
-                };
-            } else {
-                var point0, point1;
-
-                if (segment1.width > segment0.width) {
-                    point0 = {
-                        x : 0.5 * (segment0.x + segment1.x),
-                        y : 0.5 * (segment0.y + segment1.y)
-                    };
-                    point1 = {
-                        x : 0.5 * (segment0.x + segment0.width + segment1.x + segment1.width),
-                        y : 0.5 * (segment0.y + segment0.width + segment1.y + segment1.height)
-                    };
-                    curRect = {
-                        x : point0.x,
-                        y : point0.y,
-                        width : point1.x - point0.x,
-                        height : segment1.y - point0.y
-                    }
-                } else {
-                    point0 = {
-                        x : 0.5 * (segment0.x + segment1.x),
-                        y : 0.5 * (segment0.y + segment1.y)
-                    };
-                    point1 = {
-                        x : 0.5 * (segment0.x + segment0.width + segment1.x + segment1.width),
-                        y : 0.5 * (segment0.y + segment0.width + segment1.y + segment1.height)
-                    };
-                    curRect = {
-                        x : point0.x,
-                        y : segment0.y,
-                        width : point1.x - point0.x,
-                        height : point0.y - segment0.y
-                    }
-                }
-            }
-
-            if (
-                curRect.width > innerRect.width ||
-                (curRect.width === innerRect.width && curRect.height > innerRect.height)
-            ) {
-                innerRect = curRect;
-            }
-        }
+    function differenceAire( matrix, xKeys, yKeys, i, direction) {
+        var beforeAire = calculAires( matrix, xKeys, yKeys );
+        if( direction=='top' || direction=='bottom') deleteRow( matrix, xKeys, yKeys, 0, i, direction );
+        else deleteRow( matrix, xKeys, yKeys, i, 0, direction );
+        var newAire = calculAires( matrix, xKeys, yKeys );
+        if( ((beforeAire.inside - newAire.inside) > (precision*(beforeAire.outside - newAire.outside))) ) {
+            return true;
+        } else return false;
     }
 
+    function arrondi( item) {
+        return Math.round( item *1000) / 1000;
+    }
+
+    var points   = this.points;
+    var minX = +Infinity,
+        maxX = -Infinity,
+        minY = +Infinity,
+        maxY = -Infinity;
+
+    _.each(this.points, function (point) {
+        minX = Math.min(point.x, minX);
+        maxX = Math.max(point.x, maxX);
+        minY = Math.min(point.y, minY);
+        maxY = Math.max(point.y, maxY);
+    });
+    var box  = utils.bbox(minX, minY, Math.abs(Math.abs(maxX) - Math.abs(minX)), Math.abs(Math.abs(maxY) - Math.abs(minY)));
+
+    var offsetX             = arrondi(box.width / 40);
+    var offsetY             = arrondi(box.height / 40);
+    var getMatrixParams     = makeMatrix( points, box );
+
+    var matrix    = getMatrixParams.matrix;
+    var xKeys     = getMatrixParams.xKeys;
+    var yKeys     = getMatrixParams.yKeys;
+    var rxKeys    = _.sortBy(xKeys, function (name) {return name}).reverse();
+    var ryKeys    = _.sortBy(yKeys, function (name) {return name}).reverse();
+
+    var originalrxKeys = JSON.parse(JSON.stringify(rxKeys));
+    var originalryKeys = JSON.parse(JSON.stringify(ryKeys));
+
+    var precision = 0.7;
+
+    // on elimine les lignes par le haut
+
+    for(var i in originalryKeys) {
+        if( differenceAire(matrix, xKeys, yKeys, originalryKeys[i], 'top') ) break;
+    }
+
+    // on elimine les lignes par la droite
+    for( var i in originalrxKeys ) {
+        if( differenceAire(matrix, xKeys, yKeys, originalrxKeys[i], 'right') ) break;
+    }
+
+    // on elimine les lignes par le bas
+    for( var i in yKeys ) {
+        if( differenceAire(matrix, xKeys, yKeys, yKeys[i], 'bottom') ) break;
+    }
+    // on elimine les lignes par la gauche
+    for( var i in xKeys ) {
+        if( differenceAire(matrix, xKeys, yKeys, xKeys[i], 'left') ) break;
+    }
+
+    innerRect = matrixToRect(matrix);
     callback(innerRect);
 };
+
 
 /**
  * Get segment at specific Y coordinate
