@@ -268,7 +268,6 @@ Polygon.prototype.getInnerBox = function getInnerBox(callback) {
             rxKeys = _.without(rxKeys, x);
             xKeys = _.without(xKeys, x);
         }
-        console.log(rxKeys);
         if( find == true && x == 0 && from == 'bottom') {
             yKeys = _.without(yKeys, y);
             ryKeys = _.without(ryKeys, y);
