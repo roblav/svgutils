@@ -307,6 +307,16 @@ Polygon.prototype.getInnerBox = function getInnerBox(callback) {
     });
     var box  = utils.bbox(minX, minY, Math.abs(Math.abs(maxX) - Math.abs(minX)), Math.abs(Math.abs(maxY) - Math.abs(minY)));
 
+    if (box.width <= 0.1 || box.height <= 0.1 ) {
+        callback({
+            x: 0,
+            y: 0,
+            width: 0,
+            height: 0
+        });
+        return;
+    }
+
     var offsetX             = arrondi(box.width / 40);
     var offsetY             = arrondi(box.height / 40);
     var getMatrixParams     = makeMatrix( points, box );
