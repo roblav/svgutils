@@ -79,7 +79,7 @@ Group.prototype.findById = function findById(id) {
     _.each(this.childs, function (elem) {
         if (elem.id == id) {
             returnElem = elem;
-        }else if (elem.type == 'g') {
+        }else if (elem.type == 'g' && returnElem == null) {
             returnElem = elem.findById(id);
         }
     });
@@ -100,7 +100,7 @@ Group.prototype.findByIdAndType = function findByIdAndType(id, type) {
     _.each(this.childs, function (elem) {
         if (elem.id == id && elem.type == type) {
             returnElem = elem;
-        } else if (elem.type == 'g') {
+        } else if (elem.type == 'g' && returnElem == null) {
             returnElem = elem.findByIdAndType(id, type);
         }
     });
@@ -121,7 +121,7 @@ Group.prototype.findByIdWithoutType = function findByIdWithoutType(id, type) {
     _.each(this.childs, function (elem) {
         if (elem.id == id && elem.type != type) {
             returnElem = elem;
-        } else if (elem.type == 'g') {
+        } else if (elem.type == 'g' && returnElem == null) {
             returnElem = elem.findByIdWithoutType(id, type);
         }
     });
