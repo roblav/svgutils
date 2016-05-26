@@ -353,6 +353,23 @@ Polygon.prototype.getInnerBox = function getInnerBox(callback) {
     }
 
     innerRect = matrixToRect(matrix);
+
+    // cas spécifique non gérer par l'algo
+    // on enleve un quart de l'outerbox
+    if( innerRect.x == 99999 &&
+        innerRect.y == 99999 &&
+        innerRect.width == -99999 &&
+        innerRect.height == -99999) {
+
+        var deltaQuarterX = box.width / 4;
+        var deltaQuarterY = box.height / 4;
+
+        innerRect.x         = box.x + deltaQuarterX;
+        innerRect.y         = box.y + deltaQuarterY;
+        innerRect.width     = box.width - deltaQuarterX;
+        innerRect.height    = box.height - deltaQuarterY;
+    }
+
     callback(innerRect);
 };
 
