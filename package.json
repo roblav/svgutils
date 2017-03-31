@@ -24,7 +24,7 @@
   "dependencies": {
     "async": "~1.4.2",
     "dxf-parsing": "^0.3.7",
-    "gm": "~1.20.0",
+    "gm": "~1.21.1",
     "underscore": "~1.7.0",
     "xml2js": "~0.4.4",
     "xmlbuilder": "^3.1.0"
